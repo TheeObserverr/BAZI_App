@@ -1,36 +1,70 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Ba Zi Calculator
 
-## Getting Started
+A Four Pillars (Ba Zi) birth chart calculator: pillars + elements, 10-year luck
+cycles with the current cycle highlighted, and an AI-generated reading
+(personality, career, wealth/luck, health) that overlays the current luck
+cycle. Includes a reference page on the ten Day Masters.
 
-First, run the development server:
+Nothing entered is stored or logged — chart math runs client-side in the
+browser, and only the derived chart values (not names or contact info) are
+sent to the AI endpoint to generate the reading.
+
+## Stack
+
+- Next.js (App Router) + TypeScript + Tailwind
+- [`lunar-javascript`](https://github.com/6tail/lunar-javascript) for the Ba Zi
+  / lunar calendar / 10-year luck cycle math
+- [`iztro`](https://github.com/SylarLong/iztro) as a secondary, unnamed
+  enrichment signal blended into the AI prompt for extra nuance
+- Google **Gemini** (free tier) for the AI reading
+
+## Local setup
+
+```bash
+npm install
+```
+
+Create `.env.local` in the project root with a Gemini API key (free, from
+[aistudio.google.com/apikey](https://aistudio.google.com/apikey) — this is
+separate from any Claude/Anthropic account):
+
+```
+GEMINI_API_KEY=your-key-here
+```
+
+Then run the dev server:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Deploying to Vercel
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. Push this repo to GitHub (or use the Vercel CLI directly from this folder).
+2. Import the project at [vercel.com/new](https://vercel.com/new).
+3. In the project's Settings → Environment Variables, add `GEMINI_API_KEY`
+   with your key.
+4. Deploy. No database or other config is needed — the app is fully
+   stateless.
 
-## Learn More
+Or via CLI:
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+npm i -g vercel
+vercel
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+(Vercel will prompt you to add `GEMINI_API_KEY` on first deploy, or add it
+afterwards under the project's Environment Variables settings and redeploy.)
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Notes on accuracy
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Ba Zi math (pillars, elements, 10-year luck cycles) uses real solar-term
+  data via `lunar-javascript`, so it should match traditional calculators.
+- Birth time is used as entered (civil clock time) — there's no
+  longitude-based "true solar time" correction, which is an advanced option
+  most calculators skip too.
+- If birth time is unknown, the Hour Pillar is omitted and the reading is
+  flagged as reduced-confidence (~72%).
