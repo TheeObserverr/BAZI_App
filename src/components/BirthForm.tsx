@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { BirthInput, Gender } from "@/lib/bazi";
+import { CITIES, REGIONS, cityKey } from "@/lib/cities";
 
 interface Props {
   onSubmit: (input: BirthInput) => void;
@@ -20,6 +21,9 @@ function fmtOffset(v: number) {
   return `GMT${sign}${h}${m ? `:${m.toString().padStart(2, "0")}` : ""}`;
 }
 
+const CUSTOM_KEY = "__custom__";
+const DEFAULT_CITY = CITIES.find((c) => c.name === "Singapore") ?? CITIES[0];
+
 export default function BirthForm({ onSubmit }: Props) {
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear() - 25);
@@ -29,12 +33,22 @@ export default function BirthForm({ onSubmit }: Props) {
   const [minute, setMinute] = useState(0);
   const [timeUnknown, setTimeUnknown] = useState(false);
   const [gender, setGender] = useState<Gender>("female");
-  const [gmtOffset, setGmtOffset] = useState(8);
+  const [selectedCityKey, setSelectedCityKey] = useState(cityKey(DEFAULT_CITY));
+  const [customLongitude, setCustomLongitude] = useState(0);
+  const [customUtcOffset, setCustomUtcOffset] = useState(0);
+  const [customLabel, setCustomLabel] = useState("");
 
   const daysInMonth = new Date(year, month, 0).getDate();
+  const isCustomLocation = selectedCityKey === CUSTOM_KEY;
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+
+    const city = CITIES.find((c) => cityKey(c) === selectedCityKey);
+    const longitude = isCustomLocation ? customLongitude : city!.lon;
+    const utcOffset = isCustomLocation ? customUtcOffset : city!.utcOffset;
+    const locationLabel = isCustomLocation ? customLabel || "Custom location" : `${city!.name}, ${city!.country}`;
+
     onSubmit({
       year,
       month,
@@ -42,7 +56,9 @@ export default function BirthForm({ onSubmit }: Props) {
       hour: timeUnknown ? null : hour,
       minute: timeUnknown ? 0 : minute,
       gender,
-      gmtOffset,
+      longitude,
+      utcOffset,
+      locationLabel,
       timeUnknown,
     });
   }
@@ -162,20 +178,75 @@ export default function BirthForm({ onSubmit }: Props) {
           </select>
         </label>
         <label className="flex flex-col gap-1 text-sm">
-          <span className="text-[#7a6f61]">Birth location (time zone)</span>
+          <span className="text-[#7a6f61]">Birth city</span>
           <select
-            value={gmtOffset}
-            onChange={(e) => setGmtOffset(Number(e.target.value))}
+            value={selectedCityKey}
+            onChange={(e) => setSelectedCityKey(e.target.value)}
             className="rounded-lg border border-[#e3d5c0] px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#7a2e2e]/40"
           >
-            {GMT_OFFSETS.map((o) => (
-              <option key={o} value={o}>
-                {fmtOffset(o)}
-              </option>
+            {REGIONS.map((region) => (
+              <optgroup key={region} label={region}>
+                {CITIES.filter((c) => c.region === region).map((c) => (
+                  <option key={cityKey(c)} value={cityKey(c)}>
+                    {c.name}, {c.country}
+                  </option>
+                ))}
+              </optgroup>
             ))}
+            <optgroup label="Other">
+              <option value={CUSTOM_KEY}>Enter location manually</option>
+            </optgroup>
           </select>
         </label>
       </div>
+
+      {isCustomLocation && (
+        <div className="rounded-xl bg-[#fbf7f0] border border-[#e3d5c0] p-4 space-y-3">
+          <span className="text-sm font-medium">Custom location</span>
+          <div className="grid grid-cols-2 gap-3">
+            <label className="flex flex-col gap-1 text-sm">
+              <span className="text-[#7a6f61]">Longitude (° , + east)</span>
+              <input
+                type="number"
+                step={0.1}
+                min={-180}
+                max={180}
+                value={customLongitude}
+                onChange={(e) => setCustomLongitude(Number(e.target.value))}
+                className="rounded-lg border border-[#e3d5c0] px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#7a2e2e]/40"
+              />
+            </label>
+            <label className="flex flex-col gap-1 text-sm">
+              <span className="text-[#7a6f61]">Standard time zone</span>
+              <select
+                value={customUtcOffset}
+                onChange={(e) => setCustomUtcOffset(Number(e.target.value))}
+                className="rounded-lg border border-[#e3d5c0] px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#7a2e2e]/40"
+              >
+                {GMT_OFFSETS.map((o) => (
+                  <option key={o} value={o}>
+                    {fmtOffset(o)}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+          <label className="flex flex-col gap-1 text-sm">
+            <span className="text-[#7a6f61]">Label (optional)</span>
+            <input
+              type="text"
+              value={customLabel}
+              onChange={(e) => setCustomLabel(e.target.value)}
+              placeholder="e.g. My hometown"
+              className="rounded-lg border border-[#e3d5c0] px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#7a2e2e]/40"
+            />
+          </label>
+          <p className="text-xs text-[#7a6f61] leading-relaxed">
+            Use the offset your location observed at the standard (non-daylight-saving) time of
+            year — we don&apos;t currently adjust for daylight saving time.
+          </p>
+        </div>
+      )}
 
       <button
         type="submit"

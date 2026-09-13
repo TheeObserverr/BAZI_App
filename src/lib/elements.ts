@@ -85,3 +85,11 @@ export const TEN_GODS: Record<string, string> = {
 export function tenGodLabel(char: string): string {
   return TEN_GODS[char] ?? char;
 }
+
+const ELEMENT_ORDER: Element[] = ["Wood", "Fire", "Earth", "Metal", "Water"];
+
+/** The element that generates (produces/"mothers") the given element in the five-element cycle. */
+export function generatorOf(element: Element): Element {
+  const i = ELEMENT_ORDER.indexOf(element);
+  return ELEMENT_ORDER[(i + 4) % 5];
+}

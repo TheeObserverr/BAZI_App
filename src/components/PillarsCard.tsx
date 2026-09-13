@@ -69,13 +69,49 @@ export default function PillarsCard({ result }: { result: BaziResult }) {
             <span
               key={el}
               className="text-xs rounded-full px-2.5 py-1 border"
-              style={{ borderColor: ELEMENT_COLOR[el as keyof typeof ELEMENT_COLOR], color: ELEMENT_COLOR[el as keyof typeof ELEMENT_COLOR] }}
+              style={{
+                borderColor: ELEMENT_COLOR[el as keyof typeof ELEMENT_COLOR],
+                color: ELEMENT_COLOR[el as keyof typeof ELEMENT_COLOR],
+                backgroundColor: el === result.dominantElement ? `${ELEMENT_COLOR[el as keyof typeof ELEMENT_COLOR]}1a` : undefined,
+                fontWeight: el === result.dominantElement ? 600 : undefined,
+              }}
             >
               {el} × {count}
+              {el === result.dominantElement && " (dominant)"}
             </span>
           ))}
         </div>
       </div>
+
+      <div className="mt-4 rounded-xl bg-white border border-[#e3d5c0] p-4">
+        <div className="flex items-center justify-between text-sm mb-2">
+          <span>
+            Day Master is <strong>{result.dayMasterStrength}</strong>
+          </span>
+          <span className="text-xs text-[#7a6f61]">{result.supportivePercent}% supportive influence</span>
+        </div>
+        <div className="h-2 rounded-full bg-[#f0e6d6] overflow-hidden">
+          <div
+            className="h-full rounded-full"
+            style={{ width: `${result.supportivePercent}%`, backgroundColor: ELEMENT_COLOR[result.dayMaster.element] }}
+          />
+        </div>
+        <p className="mt-2 text-xs text-[#7a6f61] leading-relaxed">
+          {result.dayMasterStrength === "Strong" &&
+            "Your chart leans on your own element and what feeds it — you likely draw on inner reserves easily and may need outlets to release excess energy."}
+          {result.dayMasterStrength === "Balanced" &&
+            "Your chart is fairly even between what supports and what draws on your core element — a flexible baseline that can lean either way depending on circumstances."}
+          {result.dayMasterStrength === "Weak" &&
+            "Your chart leans on elements that challenge or drain your core element — you likely do best drawing on external support and allies rather than pushing solo."}
+        </p>
+      </div>
+
+      {result.solarTimeCorrectionMinutes !== null && Math.abs(result.solarTimeCorrectionMinutes) >= 1 && (
+        <p className="mt-3 text-xs text-[#7a6f61]">
+          Adjusted {result.solarTimeCorrectionMinutes > 0 ? "+" : ""}
+          {result.solarTimeCorrectionMinutes} min for true solar time at {result.input.locationLabel}.
+        </p>
+      )}
 
       {result.input.timeUnknown && (
         <p className="mt-4 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">

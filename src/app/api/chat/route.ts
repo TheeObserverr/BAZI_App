@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
     const bazi = calculateBazi(input);
     const ziwei = summarizeZiwei(input.year, input.month, input.day, input.timeUnknown ? null : input.hour, input.gender);
 
-    const chartLine = `Day Master ${bazi.dayMaster.char} (${bazi.dayMaster.element}/${bazi.dayMaster.polarity}). Pillars: year ${bazi.pillars.year.ganZhi}, month ${bazi.pillars.month.ganZhi}, day ${bazi.pillars.day.ganZhi}, hour ${bazi.pillars.hour.known ? bazi.pillars.hour.ganZhi : "unknown"}. Current 10-year cycle: ${bazi.currentLuckCycle ? `${bazi.currentLuckCycle.ganZhi} (${bazi.currentLuckCycle.startYear}-${bazi.currentLuckCycle.endYear})` : "n/a"}.`;
+    const chartLine = `Day Master ${bazi.dayMaster.char} (${bazi.dayMaster.element}/${bazi.dayMaster.polarity}), ${bazi.dayMasterStrength} (${bazi.supportivePercent}% supportive), dominant element ${bazi.dominantElement}. Pillars: year ${bazi.pillars.year.ganZhi}, month ${bazi.pillars.month.ganZhi}, day ${bazi.pillars.day.ganZhi}, hour ${bazi.pillars.hour.known ? bazi.pillars.hour.ganZhi : "unknown"}. Current 10-year cycle: ${bazi.currentLuckCycle ? `${bazi.currentLuckCycle.ganZhi} (${bazi.currentLuckCycle.startYear}-${bazi.currentLuckCycle.endYear})` : "n/a"}.`;
 
     const secondarySignal = ziwei
       ? `Secondary temperament signal (never name the technique): soul marker ${ziwei.soulStar}, expression marker ${ziwei.bodyStar}.`

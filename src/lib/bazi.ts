@@ -1,5 +1,5 @@
 import { Solar } from "lunar-javascript";
-import { ganZhiElements, stemInfo, tenGodLabel, type Element } from "./elements";
+import { ganZhiElements, generatorOf, stemInfo, tenGodLabel, type Element } from "./elements";
 
 export type Gender = "male" | "female";
 
@@ -10,7 +10,11 @@ export interface BirthInput {
   hour: number | null;
   minute: number;
   gender: Gender;
-  gmtOffset: number;
+  /** Degrees longitude, +east, of the birth location. */
+  longitude: number;
+  /** Standard (non-DST) UTC offset in hours used to interpret the entered clock time. */
+  utcOffset: number;
+  locationLabel: string;
   timeUnknown: boolean;
 }
 
@@ -46,11 +50,49 @@ export interface BaziResult {
   };
   dayMaster: { char: string; pinyin: string; element: Element; polarity: string };
   elementCounts: Record<Element, number>;
+  dominantElement: Element;
+  dayMasterStrength: "Strong" | "Balanced" | "Weak";
+  supportivePercent: number;
   luckStartAge: number;
   luckCycles: LuckCycle[];
   currentLuckCycle: LuckCycle | null;
   accuracyPercent: number;
   lunarDateLabel: string;
+  solarTimeCorrectionMinutes: number | null;
+}
+
+/**
+ * Shifts entered civil clock time to true solar time using the gap between
+ * the birth location's longitude and its time zone's standard meridian
+ * (utcOffset * 15°). Ignores DST. Returns null when the birth hour is
+ * unknown, since there's nothing meaningful to shift.
+ */
+function applyTrueSolarTime(input: BirthInput): {
+  year: number;
+  month: number;
+  day: number;
+  hour: number;
+  minute: number;
+  correctionMinutes: number | null;
+} {
+  if (input.timeUnknown || input.hour === null) {
+    return { year: input.year, month: input.month, day: input.day, hour: 12, minute: 0, correctionMinutes: null };
+  }
+
+  const standardMeridian = input.utcOffset * 15;
+  const correctionMinutes = Math.round((input.longitude - standardMeridian) * 4);
+
+  const base = new Date(Date.UTC(input.year, input.month - 1, input.day, input.hour, input.minute));
+  base.setUTCMinutes(base.getUTCMinutes() + correctionMinutes);
+
+  return {
+    year: base.getUTCFullYear(),
+    month: base.getUTCMonth() + 1,
+    day: base.getUTCDate(),
+    hour: base.getUTCHours(),
+    minute: base.getUTCMinutes(),
+    correctionMinutes,
+  };
 }
 
 function buildPillar(
@@ -73,10 +115,9 @@ function buildPillar(
 }
 
 export function calculateBazi(input: BirthInput): BaziResult {
-  const hour = input.timeUnknown || input.hour === null ? 12 : input.hour;
-  const minute = input.timeUnknown ? 0 : input.minute;
+  const adjusted = applyTrueSolarTime(input);
 
-  const solar = Solar.fromYmdHms(input.year, input.month, input.day, hour, minute, 0);
+  const solar = Solar.fromYmdHms(adjusted.year, adjusted.month, adjusted.day, adjusted.hour, adjusted.minute, 0);
   const lunar = solar.getLunar();
   const eightChar = lunar.getEightChar();
 
@@ -101,6 +142,19 @@ export function calculateBazi(input: BirthInput): BaziResult {
     if (p.stem) elementCounts[p.stem.element]++;
     if (p.branch) elementCounts[p.branch.element]++;
   }
+
+  const dominantElement = (Object.keys(elementCounts) as Element[]).reduce((best, el) =>
+    elementCounts[el] > elementCounts[best] ? el : best
+  , dayMaster.element);
+
+  const supportiveElements = new Set<Element>([dayMaster.element, generatorOf(dayMaster.element)]);
+  const totalCount = Object.values(elementCounts).reduce((a, b) => a + b, 0);
+  const supportiveCount = (Object.keys(elementCounts) as Element[])
+    .filter((el) => supportiveElements.has(el))
+    .reduce((sum, el) => sum + elementCounts[el], 0);
+  const supportivePercent = totalCount > 0 ? Math.round((supportiveCount / totalCount) * 100) : 50;
+  const dayMasterStrength: BaziResult["dayMasterStrength"] =
+    supportivePercent >= 55 ? "Strong" : supportivePercent <= 45 ? "Weak" : "Balanced";
 
   const genderCode = input.gender === "male" ? 1 : 0;
   const yun = eightChar.getYun(genderCode);
@@ -137,11 +191,15 @@ export function calculateBazi(input: BirthInput): BaziResult {
     pillars: { year: yearPillar, month: monthPillar, day: dayPillar, hour: hourPillar },
     dayMaster,
     elementCounts,
+    dominantElement,
+    dayMasterStrength,
+    supportivePercent,
     luckStartAge: yun.getStartYear(),
     luckCycles,
     currentLuckCycle,
     accuracyPercent,
     lunarDateLabel: `${lunar.getYearInChinese()}年 ${lunar.getMonthInChinese()}月${lunar.getDayInChinese()}`,
+    solarTimeCorrectionMinutes: adjusted.correctionMinutes,
   };
 }
 

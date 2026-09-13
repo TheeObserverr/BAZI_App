@@ -37,12 +37,14 @@ Birth chart data:
 - ${pillarLine("Day pillar", bazi.pillars.day)}
 - ${pillarLine("Hour pillar", bazi.pillars.hour)}
 - Element balance across the chart: ${elementSummary}
+- Dominant element overall: ${bazi.dominantElement}
+- Day Master strength: ${bazi.dayMasterStrength} (${bazi.supportivePercent}% of the chart supports the Day Master's own element)
 - ${cycleLine}
 - Gender: ${bazi.input.gender}
 - ${bazi.input.timeUnknown ? "Birth time was not provided — treat hour-based detail as lower confidence and lean on the other three pillars." : ""}
 - ${secondarySignal}
 
-Write a warm, specific, non-generic reading in second person ("you"). Avoid hedge-everything language; give a clear read while noting genuine uncertainty only where the data is actually incomplete (e.g. unknown birth time). Ground the "currentCyclePrediction" field specifically in the current 10-year cycle above, describing what this particular window in their life tends to emphasize and how to work with it.
+Write a warm, specific, non-generic reading in second person ("you"). Avoid hedge-everything language; give a clear read while noting genuine uncertainty only where the data is actually incomplete (e.g. unknown birth time). Base the "personality" field on the Day Master together with the dominant element and Day Master strength above (not the Day Master alone) — e.g. a Strong Day Master reads as more self-driven and assertive, a Weak one as more relationship- and support-dependent, and the dominant element (if different from the Day Master's own) should color the tone of the description. Ground the "currentCyclePrediction" field specifically in the current 10-year cycle above, describing what this particular window in their life tends to emphasize and how to work with it.
 
 Respond ONLY with JSON matching this exact shape, no markdown fences:
 {
