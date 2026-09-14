@@ -40,11 +40,12 @@ export default function BirthForm({ onSubmit }: Props) {
 
   const daysInMonth = new Date(year, month, 0).getDate();
   const isCustomLocation = selectedCityKey === CUSTOM_KEY;
+  const selectedCity = CITIES.find((c) => cityKey(c) === selectedCityKey);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
 
-    const city = CITIES.find((c) => cityKey(c) === selectedCityKey);
+    const city = selectedCity;
     const longitude = isCustomLocation ? customLongitude : city!.lon;
     const utcOffset = isCustomLocation ? customUtcOffset : city!.utcOffset;
     const locationLabel = isCustomLocation ? customLabel || "Custom location" : `${city!.name}, ${city!.country}`;
@@ -178,7 +179,12 @@ export default function BirthForm({ onSubmit }: Props) {
           </select>
         </label>
         <label className="flex flex-col gap-1 text-sm">
-          <span className="text-[#7a6f61]">Birth city</span>
+          <span className="text-[#7a6f61]">
+            Birth city
+            {!isCustomLocation && (
+              <span className="text-[#b3a794]"> ({fmtOffset(selectedCity?.utcOffset ?? 0)})</span>
+            )}
+          </span>
           <select
             value={selectedCityKey}
             onChange={(e) => setSelectedCityKey(e.target.value)}
@@ -188,7 +194,7 @@ export default function BirthForm({ onSubmit }: Props) {
               <optgroup key={region} label={region}>
                 {CITIES.filter((c) => c.region === region).map((c) => (
                   <option key={cityKey(c)} value={cityKey(c)}>
-                    {c.name}, {c.country}
+                    {c.name}, {c.country} ({fmtOffset(c.utcOffset)})
                   </option>
                 ))}
               </optgroup>
