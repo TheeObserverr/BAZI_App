@@ -63,8 +63,12 @@ afterwards under the project's Environment Variables settings and redeploy.)
 
 - Ba Zi math (pillars, elements, 10-year luck cycles) uses real solar-term
   data via `lunar-javascript`, so it should match traditional calculators.
-- Birth time is used as entered (civil clock time) — there's no
-  longitude-based "true solar time" correction, which is an advanced option
-  most calculators skip too.
+- Entered civil clock time is converted to true (apparent) solar time before
+  computing pillars: a longitude-vs-standard-meridian correction plus the
+  equation of time for that date. This is usually a shift of tens of minutes
+  — enough to occasionally flip the Hour Pillar near a 2-hour boundary, but
+  it will not shift results by hours just because two birth locations sit in
+  very different time zones (Ba Zi is based on local time of day, not a
+  shared universal clock). DST is not accounted for.
 - If birth time is unknown, the Hour Pillar is omitted and the reading is
   flagged as reduced-confidence (~72%).

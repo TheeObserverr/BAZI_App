@@ -62,10 +62,24 @@ export interface BaziResult {
 }
 
 /**
- * Shifts entered civil clock time to true solar time using the gap between
- * the birth location's longitude and its time zone's standard meridian
- * (utcOffset * 15°). Ignores DST. Returns null when the birth hour is
- * unknown, since there's nothing meaningful to shift.
+ * Equation of time, in minutes: the gap between apparent (sundial) solar
+ * time and mean solar time, caused by Earth's elliptical orbit and axial
+ * tilt. Ranges roughly -14 to +16 minutes over the year. Approximation per
+ * Spencer's formula.
+ */
+function equationOfTimeMinutes(year: number, month: number, day: number): number {
+  const dayOfYear = Math.floor((Date.UTC(year, month - 1, day) - Date.UTC(year, 0, 1)) / 86400000) + 1;
+  const daysInYear = (year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0)) ? 366 : 365;
+  const b = (2 * Math.PI * (dayOfYear - 81)) / daysInYear;
+  return 9.87 * Math.sin(2 * b) - 7.53 * Math.cos(b) - 1.5 * Math.sin(b);
+}
+
+/**
+ * Shifts entered civil clock time to true (apparent) solar time: the gap
+ * between the birth location's longitude and its time zone's standard
+ * meridian (utcOffset * 15°), plus the equation of time for that date.
+ * Ignores DST. Returns null when the birth hour is unknown, since there's
+ * nothing meaningful to shift.
  */
 function applyTrueSolarTime(input: BirthInput): {
   year: number;
@@ -80,7 +94,9 @@ function applyTrueSolarTime(input: BirthInput): {
   }
 
   const standardMeridian = input.utcOffset * 15;
-  const correctionMinutes = Math.round((input.longitude - standardMeridian) * 4);
+  const longitudeCorrection = (input.longitude - standardMeridian) * 4;
+  const eot = equationOfTimeMinutes(input.year, input.month, input.day);
+  const correctionMinutes = Math.round(longitudeCorrection + eot);
 
   const base = new Date(Date.UTC(input.year, input.month - 1, input.day, input.hour, input.minute));
   base.setUTCMinutes(base.getUTCMinutes() + correctionMinutes);
