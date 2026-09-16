@@ -26,7 +26,9 @@ const DEFAULT_CITY = CITIES.find((c) => c.name === "Singapore") ?? CITIES[0];
 
 export default function BirthForm({ onSubmit }: Props) {
   const now = new Date();
-  const [year, setYear] = useState(now.getFullYear() - 25);
+  const defaultYear = now.getFullYear() - 25;
+  const [yearInput, setYearInput] = useState(String(defaultYear));
+  const year = yearInput.trim() === "" ? defaultYear : Number(yearInput) || defaultYear;
   const [month, setMonth] = useState(1);
   const [day, setDay] = useState(1);
   const [hour, setHour] = useState(12);
@@ -45,13 +47,18 @@ export default function BirthForm({ onSubmit }: Props) {
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
 
+    const parsedYear = Number(yearInput);
+    if (yearInput.trim() === "" || !Number.isFinite(parsedYear) || parsedYear < 1900 || parsedYear > now.getFullYear()) {
+      return;
+    }
+
     const city = selectedCity;
     const longitude = isCustomLocation ? customLongitude : city!.lon;
     const utcOffset = isCustomLocation ? customUtcOffset : city!.utcOffset;
     const locationLabel = isCustomLocation ? customLabel || "Custom location" : `${city!.name}, ${city!.country}`;
 
     onSubmit({
-      year,
+      year: parsedYear,
       month,
       day: Math.min(day, daysInMonth),
       hour: timeUnknown ? null : hour,
@@ -70,12 +77,12 @@ export default function BirthForm({ onSubmit }: Props) {
         <label className="flex flex-col gap-1 text-sm">
           <span className="text-[#7a6f61]">Year</span>
           <input
-            type="number"
+            type="text"
+            inputMode="numeric"
+            pattern="[0-9]*"
             required
-            min={1900}
-            max={now.getFullYear()}
-            value={year}
-            onChange={(e) => setYear(Number(e.target.value))}
+            value={yearInput}
+            onChange={(e) => setYearInput(e.target.value.replace(/[^0-9]/g, ""))}
             className="rounded-lg border border-[#e3d5c0] px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#7a2e2e]/40"
           />
         </label>
