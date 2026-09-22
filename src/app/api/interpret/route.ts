@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { calculateBazi, type BirthInput } from "@/lib/bazi";
 import { summarizeZiwei } from "@/lib/ziwei";
-import { generateAndParseJSON } from "@/lib/gemini";
+import { generateAndParseJSON, getApiKeys, withKeyRotation } from "@/lib/gemini";
 
 interface Reading {
   personality: string;
@@ -67,8 +67,8 @@ Respond ONLY with JSON matching this exact shape, no markdown fences:
 
 export async function POST(req: NextRequest) {
   try {
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) {
+    const apiKeys = getApiKeys();
+    if (apiKeys.length === 0) {
       return NextResponse.json(
         { error: "Server is not configured with a GEMINI_API_KEY. Add one in your deployment's environment variables." },
         { status: 500 }
@@ -90,17 +90,18 @@ export async function POST(req: NextRequest) {
     const bazi = calculateBazi(input);
     const ziwei = summarizeZiwei(input.year, input.month, input.day, input.timeUnknown ? null : input.hour, input.gender);
 
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({
-      model: "gemini-3.6-flash",
-      generationConfig: { responseMimeType: "application/json" },
-    });
-
     const prompt = buildPrompt(bazi, ziwei);
 
     let reading: Reading;
     try {
-      reading = await generateAndParseJSON<Reading>(async () => (await model.generateContent(prompt)).response.text());
+      reading = await withKeyRotation(apiKeys, (apiKey) => {
+        const genAI = new GoogleGenerativeAI(apiKey);
+        const model = genAI.getGenerativeModel({
+          model: "gemini-3.6-flash",
+          generationConfig: { responseMimeType: "application/json" },
+        });
+        return generateAndParseJSON<Reading>(async () => (await model.generateContent(prompt)).response.text());
+      });
     } catch (err) {
       console.error("interpret route: generation failed after retries", err);
       return NextResponse.json(

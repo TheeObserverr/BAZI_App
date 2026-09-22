@@ -32,6 +32,15 @@ separate from any Claude/Anthropic account):
 GEMINI_API_KEY=your-key-here
 ```
 
+Free-tier Gemini keys have fairly low per-minute/per-day quotas. If you're
+hitting rate limits, you can list multiple keys (e.g. from separate Google
+accounts/projects) comma-separated — the app falls through to the next key
+only on a quota/permission error, not on unrelated failures:
+
+```
+GEMINI_API_KEY=key-one,key-two,key-three
+```
+
 Then run the dev server:
 
 ```bash

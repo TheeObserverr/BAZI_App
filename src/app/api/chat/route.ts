@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { calculateBazi, type BirthInput } from "@/lib/bazi";
 import { summarizeZiwei } from "@/lib/ziwei";
-import { withRetry } from "@/lib/gemini";
+import { getApiKeys, withKeyRotation, withRetry } from "@/lib/gemini";
 
 export const runtime = "nodejs";
 
@@ -22,8 +22,8 @@ interface RequestBody {
 
 export async function POST(req: NextRequest) {
   try {
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) {
+    const apiKeys = getApiKeys();
+    if (apiKeys.length === 0) {
       return NextResponse.json(
         { error: "Server is not configured with a GEMINI_API_KEY." },
         { status: 500 }
@@ -62,25 +62,25 @@ ${secondarySignal}
 The reading you already gave them:
 ${readingSummary}`;
 
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: "gemini-3.6-flash" });
-
     const chatHistory = (history ?? []).slice(-MAX_TURNS * 2).map((m) => ({
       role: m.role === "user" ? "user" : "model",
       parts: [{ text: m.content }],
     }));
 
-    const chat = model.startChat({
-      history: [
-        { role: "user", parts: [{ text: systemContext }] },
-        { role: "model", parts: [{ text: "Understood — I'll answer their follow-up questions in that voice." }] },
-        ...chatHistory,
-      ],
-    });
-
     let answer: string;
     try {
-      answer = await withRetry(async () => (await chat.sendMessage(question)).response.text());
+      answer = await withKeyRotation(apiKeys, (apiKey) => {
+        const genAI = new GoogleGenerativeAI(apiKey);
+        const model = genAI.getGenerativeModel({ model: "gemini-3.6-flash" });
+        const chat = model.startChat({
+          history: [
+            { role: "user", parts: [{ text: systemContext }] },
+            { role: "model", parts: [{ text: "Understood — I'll answer their follow-up questions in that voice." }] },
+            ...chatHistory,
+          ],
+        });
+        return withRetry(async () => (await chat.sendMessage(question)).response.text());
+      });
     } catch (err) {
       console.error("chat route: generation failed after retries", err);
       return NextResponse.json(
