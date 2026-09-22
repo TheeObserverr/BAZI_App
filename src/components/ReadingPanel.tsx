@@ -25,6 +25,7 @@ export default function ReadingPanel({ input, onLoaded }: { input: BirthInput; o
   const [reading, setReading] = useState<Reading | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -62,7 +63,7 @@ export default function ReadingPanel({ input, onLoaded }: { input: BirthInput; o
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [input]);
+  }, [input, retryCount]);
 
   if (loading) {
     return (
@@ -77,7 +78,16 @@ export default function ReadingPanel({ input, onLoaded }: { input: BirthInput; o
 
   if (error) {
     return (
-      <div className="rounded-2xl border border-red-200 bg-red-50 text-red-800 p-6 text-sm">{error}</div>
+      <div className="rounded-2xl border border-red-200 bg-red-50 text-red-800 p-6 text-sm space-y-3">
+        <p>{error}</p>
+        <button
+          type="button"
+          onClick={() => setRetryCount((c) => c + 1)}
+          className="rounded-lg border border-red-300 bg-white px-3 py-1.5 text-xs font-medium text-red-800 hover:bg-red-100 transition-colors"
+        >
+          Try again
+        </button>
+      </div>
     );
   }
 

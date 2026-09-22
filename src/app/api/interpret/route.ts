@@ -2,6 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { calculateBazi, type BirthInput } from "@/lib/bazi";
 import { summarizeZiwei } from "@/lib/ziwei";
+import { generateAndParseJSON } from "@/lib/gemini";
+
+interface Reading {
+  personality: string;
+  career: string;
+  wealthLuck: string;
+  health: string;
+  currentCyclePrediction: string;
+}
 
 export const runtime = "nodejs";
 
@@ -88,17 +97,19 @@ export async function POST(req: NextRequest) {
     });
 
     const prompt = buildPrompt(bazi, ziwei);
-    const result = await model.generateContent(prompt);
-    const text = result.response.text();
 
-    let parsed: unknown;
+    let reading: Reading;
     try {
-      parsed = JSON.parse(text);
-    } catch {
-      return NextResponse.json({ error: "Could not parse AI response." }, { status: 502 });
+      reading = await generateAndParseJSON<Reading>(async () => (await model.generateContent(prompt)).response.text());
+    } catch (err) {
+      console.error("interpret route: generation failed after retries", err);
+      return NextResponse.json(
+        { error: "The reading service is temporarily unavailable — please try again in a moment." },
+        { status: 502 }
+      );
     }
 
-    return NextResponse.json({ reading: parsed });
+    return NextResponse.json({ reading });
   } catch (err) {
     console.error("interpret route error", err);
     return NextResponse.json({ error: "Something went wrong generating the reading." }, { status: 500 });

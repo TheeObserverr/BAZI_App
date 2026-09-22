@@ -13,6 +13,7 @@ interface ChatMessage {
 export default function ChatPanel({ input, readingSummary }: { input: BirthInput; readingSummary: string }) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [question, setQuestion] = useState("");
+  const [pendingQuestion, setPendingQuestion] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -25,8 +26,7 @@ export default function ChatPanel({ input, readingSummary }: { input: BirthInput
     const trimmed = question.trim();
     if (!trimmed || loading || limitReached) return;
 
-    const nextMessages = [...messages, { role: "user" as const, content: trimmed }];
-    setMessages(nextMessages);
+    setPendingQuestion(trimmed);
     setQuestion("");
     setLoading(true);
     setError(null);
@@ -39,13 +39,17 @@ export default function ChatPanel({ input, readingSummary }: { input: BirthInput
       });
       const data = await res.json();
       if (!res.ok) {
+        // Don't consume a question slot or lose the draft on failure.
         setError(data.error ?? "Something went wrong.");
+        setQuestion(trimmed);
       } else {
-        setMessages([...nextMessages, { role: "assistant", content: data.answer }]);
+        setMessages([...messages, { role: "user", content: trimmed }, { role: "assistant", content: data.answer }]);
       }
     } catch {
       setError("Could not reach the chat service.");
+      setQuestion(trimmed);
     } finally {
+      setPendingQuestion(null);
       setLoading(false);
     }
   }
@@ -59,7 +63,7 @@ export default function ChatPanel({ input, readingSummary }: { input: BirthInput
         </span>
       </div>
 
-      {messages.length > 0 && (
+      {(messages.length > 0 || pendingQuestion) && (
         <div className="space-y-3 max-h-96 overflow-y-auto pr-1">
           {messages.map((m, i) => (
             <div
@@ -71,6 +75,11 @@ export default function ChatPanel({ input, readingSummary }: { input: BirthInput
               {m.content}
             </div>
           ))}
+          {pendingQuestion && (
+            <div className="text-sm rounded-xl px-3 py-2 max-w-[85%] bg-[#7a2e2e]/70 text-white ml-auto">
+              {pendingQuestion}
+            </div>
+          )}
         </div>
       )}
 

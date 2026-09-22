@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { calculateBazi, type BirthInput } from "@/lib/bazi";
 import { summarizeZiwei } from "@/lib/ziwei";
+import { withRetry } from "@/lib/gemini";
 
 export const runtime = "nodejs";
 
@@ -77,8 +78,16 @@ ${readingSummary}`;
       ],
     });
 
-    const result = await chat.sendMessage(question);
-    const answer = result.response.text();
+    let answer: string;
+    try {
+      answer = await withRetry(async () => (await chat.sendMessage(question)).response.text());
+    } catch (err) {
+      console.error("chat route: generation failed after retries", err);
+      return NextResponse.json(
+        { error: "The chat service is temporarily unavailable — please try again in a moment." },
+        { status: 502 }
+      );
+    }
 
     return NextResponse.json({ answer });
   } catch (err) {
