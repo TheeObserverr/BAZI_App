@@ -37,6 +37,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
               <Link href="/day-masters" className="hover:text-[#7a2e2e] transition-colors">
                 Day Masters
               </Link>
+              <Link href="/enneagram" className="hover:text-[#7a2e2e] transition-colors">
+                Enneagram
+              </Link>
             </div>
           </nav>
         </header>
