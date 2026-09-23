@@ -3,6 +3,8 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { calculateBazi, type BirthInput } from "@/lib/bazi";
 import { summarizeZiwei } from "@/lib/ziwei";
 import { generateAndParseJSON, getApiKeys, withKeyRotation } from "@/lib/gemini";
+import { describeInteractionsForPrompt } from "@/lib/interactions";
+import { describeStarsForPrompt } from "@/lib/shenSha";
 
 interface Reading {
   personality: string;
@@ -49,11 +51,14 @@ Birth chart data:
 - Dominant element overall: ${bazi.dominantElement}
 - Day Master strength: ${bazi.dayMasterStrength} (${bazi.supportivePercent}% of the chart supports the Day Master's own element)
 - ${cycleLine}
+- Pillar interactions (combinations/clashes/harmonies/harms/punishments between stems and branches): ${describeInteractionsForPrompt(bazi.interactions)}
+- Interactions between the current 10-year cycle and the base chart: ${describeInteractionsForPrompt(bazi.luckInteractions)}
+- Symbolic stars present: ${describeStarsForPrompt(bazi.symbolicStars)}
 - Gender: ${bazi.input.gender}
 - ${bazi.input.timeUnknown ? "Birth time was not provided — treat hour-based detail as lower confidence and lean on the other three pillars." : ""}
 - ${secondarySignal}
 
-Write a warm, specific, non-generic reading in second person ("you"). Avoid hedge-everything language; give a clear read while noting genuine uncertainty only where the data is actually incomplete (e.g. unknown birth time). Base the "personality" field on the Day Master together with the dominant element and Day Master strength above (not the Day Master alone) — e.g. a Strong Day Master reads as more self-driven and assertive, a Weak one as more relationship- and support-dependent, and the dominant element (if different from the Day Master's own) should color the tone of the description. Ground the "currentCyclePrediction" field specifically in the current 10-year cycle above, describing what this particular window in their life tends to emphasize and how to work with it.
+Write a warm, specific, non-generic reading in second person ("you"). Avoid hedge-everything language; give a clear read while noting genuine uncertainty only where the data is actually incomplete (e.g. unknown birth time). This chart should NOT be read as "Day Master alone" — treat the Day Master, dominant element, Day Master strength, pillar interactions, and symbolic stars as a combined picture, and let the most striking 2-3 interactions or stars (not all of them) visibly shape specific details in the "personality", "career", "wealthLuck", and "health" fields, rather than only describing the Day Master's generic traits. A Strong Day Master reads as more self-driven and assertive, a Weak one as more relationship- and support-dependent; a clash or punishment involving the Day or Month pillar should show up as a specific real tension (e.g. in relationships or career), not just be skipped. Ground the "currentCyclePrediction" field specifically in the current 10-year cycle and its interactions with the base chart above, describing what this particular window in their life tends to emphasize and how to work with it.
 
 Respond ONLY with JSON matching this exact shape, no markdown fences:
 {

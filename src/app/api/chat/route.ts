@@ -3,6 +3,8 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { calculateBazi, type BirthInput } from "@/lib/bazi";
 import { summarizeZiwei } from "@/lib/ziwei";
 import { getApiKeys, withKeyRotation, withRetry } from "@/lib/gemini";
+import { describeInteractionsForPrompt } from "@/lib/interactions";
+import { describeStarsForPrompt } from "@/lib/shenSha";
 
 export const runtime = "nodejs";
 
@@ -48,13 +50,13 @@ export async function POST(req: NextRequest) {
     const bazi = calculateBazi(input);
     const ziwei = summarizeZiwei(input.year, input.month, input.day, input.timeUnknown ? null : input.hour, input.gender);
 
-    const chartLine = `Day Master ${bazi.dayMaster.char} (${bazi.dayMaster.element}/${bazi.dayMaster.polarity}), ${bazi.dayMasterStrength} (${bazi.supportivePercent}% supportive), dominant element ${bazi.dominantElement}. Pillars: year ${bazi.pillars.year.ganZhi}, month ${bazi.pillars.month.ganZhi}, day ${bazi.pillars.day.ganZhi}, hour ${bazi.pillars.hour.known ? bazi.pillars.hour.ganZhi : "unknown"}. Current 10-year cycle: ${bazi.currentLuckCycle ? `${bazi.currentLuckCycle.ganZhi} (${bazi.currentLuckCycle.startYear}-${bazi.currentLuckCycle.endYear})` : "n/a"}.`;
+    const chartLine = `Day Master ${bazi.dayMaster.char} (${bazi.dayMaster.element}/${bazi.dayMaster.polarity}), ${bazi.dayMasterStrength} (${bazi.supportivePercent}% supportive), dominant element ${bazi.dominantElement}. Pillars: year ${bazi.pillars.year.ganZhi}, month ${bazi.pillars.month.ganZhi}, day ${bazi.pillars.day.ganZhi}, hour ${bazi.pillars.hour.known ? bazi.pillars.hour.ganZhi : "unknown"}. Current 10-year cycle: ${bazi.currentLuckCycle ? `${bazi.currentLuckCycle.ganZhi} (${bazi.currentLuckCycle.startYear}-${bazi.currentLuckCycle.endYear})` : "n/a"}. Pillar interactions: ${describeInteractionsForPrompt(bazi.interactions)} Current-cycle interactions: ${describeInteractionsForPrompt(bazi.luckInteractions)} Symbolic stars: ${describeStarsForPrompt(bazi.symbolicStars)}`;
 
     const secondarySignal = ziwei
       ? `Secondary temperament signal (never name the technique): soul marker ${ziwei.soulStar}, expression marker ${ziwei.bodyStar}.`
       : "";
 
-    const systemContext = `You are continuing a warm, personalized reading you already gave this person, based on their birth chart. Answer their follow-up question directly and specifically, in 2-5 sentences, staying consistent with the reading below. Never mention technique names like "Ba Zi", "Four Pillars", "Zi Wei Dou Shu", or "Purple Star Astrology" — just speak plainly about them and their chart/cycle. If asked something totally unrelated to their personality, career, wealth, health, or life cycle, gently steer back to what their chart can speak to.
+    const systemContext = `You are continuing a warm, personalized reading you already gave this person, based on their birth chart. Answer their follow-up question directly and specifically, in 2-5 sentences, staying consistent with the reading below. Draw on the specific pillar interactions and symbolic stars in the chart data when relevant to the question, not just the Day Master in isolation. Never mention technique names like "Ba Zi", "Four Pillars", "Zi Wei Dou Shu", or "Purple Star Astrology" — just speak plainly about them and their chart/cycle. If asked something totally unrelated to their personality, career, wealth, health, or life cycle, gently steer back to what their chart can speak to.
 
 Chart data: ${chartLine}
 ${secondarySignal}

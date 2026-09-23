@@ -1,5 +1,7 @@
 import { Solar } from "lunar-javascript";
 import { ganZhiElements, generatorOf, stemInfo, tenGodLabel, type Element } from "./elements";
+import { findBranchInteractions, findStemInteractions, type Interaction } from "./interactions";
+import { findSymbolicStars, type SymbolicStar } from "./shenSha";
 
 export type Gender = "male" | "female";
 
@@ -59,6 +61,9 @@ export interface BaziResult {
   accuracyPercent: number;
   lunarDateLabel: string;
   solarTimeCorrectionMinutes: number | null;
+  interactions: Interaction[];
+  luckInteractions: Interaction[];
+  symbolicStars: SymbolicStar[];
 }
 
 /**
@@ -202,6 +207,27 @@ export function calculateBazi(input: BirthInput): BaziResult {
   let accuracyPercent = 95;
   if (input.timeUnknown) accuracyPercent = 72;
 
+  const knownPillars = [yearPillar, monthPillar, dayPillar, hourPillar].filter((p) => p.known);
+  const natalStems = knownPillars.filter((p) => p.stem).map((p) => ({ pillarLabel: p.label, char: p.stem!.char }));
+  const natalBranches = knownPillars.filter((p) => p.branch).map((p) => ({ pillarLabel: p.label, char: p.branch!.char }));
+
+  const interactions: Interaction[] = [...findStemInteractions(natalStems), ...findBranchInteractions(natalBranches)];
+
+  let luckInteractions: Interaction[] = [];
+  if (currentLuckCycle) {
+    const luckGanZhi = ganZhiElements(currentLuckCycle.ganZhi);
+    if (luckGanZhi) {
+      const luckStem = { pillarLabel: "Luck Cycle", char: luckGanZhi.stem.char };
+      const luckBranch = { pillarLabel: "Luck Cycle", char: luckGanZhi.branch.char };
+      luckInteractions = [
+        ...findStemInteractions([...natalStems, luckStem]).filter((i) => i.participants.includes("Luck Cycle")),
+        ...findBranchInteractions([...natalBranches, luckBranch]).filter((i) => i.participants.includes("Luck Cycle")),
+      ];
+    }
+  }
+
+  const symbolicStars = findSymbolicStars(dayMasterChar, natalBranches);
+
   return {
     input,
     pillars: { year: yearPillar, month: monthPillar, day: dayPillar, hour: hourPillar },
@@ -216,6 +242,9 @@ export function calculateBazi(input: BirthInput): BaziResult {
     accuracyPercent,
     lunarDateLabel: `${lunar.getYearInChinese()}年 ${lunar.getMonthInChinese()}月${lunar.getDayInChinese()}`,
     solarTimeCorrectionMinutes: adjusted.correctionMinutes,
+    interactions,
+    luckInteractions,
+    symbolicStars,
   };
 }
 

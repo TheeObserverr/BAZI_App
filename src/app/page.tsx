@@ -4,6 +4,7 @@ import { useState } from "react";
 import BirthForm from "@/components/BirthForm";
 import PillarsCard from "@/components/PillarsCard";
 import LuckCycleTimeline from "@/components/LuckCycleTimeline";
+import PatternsCard from "@/components/PatternsCard";
 import ReadingPanel, { readingToSummary, type Reading } from "@/components/ReadingPanel";
 import ChatPanel from "@/components/ChatPanel";
 import { calculateBazi, type BaziResult, type BirthInput } from "@/lib/bazi";
@@ -36,6 +37,7 @@ export default function Home() {
         <div className="space-y-6">
           <PillarsCard result={result} />
           <LuckCycleTimeline result={result} />
+          <PatternsCard result={result} />
           {input && <ReadingPanel input={input} onLoaded={setReading} />}
           {input && reading && <ChatPanel input={input} readingSummary={readingToSummary(reading)} />}
         </div>
